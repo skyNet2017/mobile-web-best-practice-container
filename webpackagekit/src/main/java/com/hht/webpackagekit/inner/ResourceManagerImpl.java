@@ -3,9 +3,10 @@ package com.hht.webpackagekit.inner;
 import android.content.Context;
 import android.os.Build;
 import android.text.TextUtils;
-import android.util.Log;
+
 import android.webkit.WebResourceResponse;
 
+import com.blankj.utilcode.util.LogUtils;
 import com.hht.webpackagekit.core.Constants;
 import com.hht.webpackagekit.core.ResourceInfo;
 import com.hht.webpackagekit.core.ResourceInfoEntity;
@@ -14,7 +15,7 @@ import com.hht.webpackagekit.core.ResourceManager;
 import com.hht.webpackagekit.core.ResoureceValidator;
 import com.hht.webpackagekit.core.util.FileUtils;
 import com.hht.webpackagekit.core.util.GsonUtils;
-import com.hht.webpackagekit.core.util.Logger;
+
 import com.hht.webpackagekit.core.util.MD5Utils;
 import com.hht.webpackagekit.core.util.MimeTypeUtils;
 
@@ -56,7 +57,7 @@ public class ResourceManagerImpl implements ResourceManager {
         ResourceKey key = new ResourceKey(url);
 
 //        if (!lock.tryLock()) {
-        Log.d("WebResourceResponse",url + "|" + "resourceInfoMap:"+resourceInfoMap.size());
+        LogUtils.d("WebResourceResponse",url + "|" + "resourceInfoMap:"+resourceInfoMap.size());
 //            return null;
 //        }
         ResourceInfo resourceInfo = resourceInfoMap.get(key);
@@ -68,14 +69,14 @@ public class ResourceManagerImpl implements ResourceManager {
         }
         //对于mimetype不在拦截范围的文件，则返回null并清除相应的key
         if (!MimeTypeUtils.checkIsSupportMimeType(resourceInfo.getMimeType())) {
-            Logger.d("getResource [" + url + "]" + " is not support mime type,"+resourceInfo.getMimeType());
+            LogUtils.d("getResource [" + url + "]" + " is not support mime type,"+resourceInfo.getMimeType());
             safeRemoveResource(key);
             return null;
         }
         //如果对应的本地文件不存在，则返回null并清除相应的key
         InputStream inputStream = FileUtils.getInputStream(resourceInfo.getLocalPath());
         if (inputStream == null) {
-            Logger.d("getResource [" + url + "]" + " inputStream is null");
+            LogUtils.d("getResource [" + url + "]" + " inputStream is null");
             safeRemoveResource(key);
             return null;
         }
@@ -84,7 +85,7 @@ public class ResourceManagerImpl implements ResourceManager {
             safeRemoveResource(key);
             return null;
         }
-        Log.d("qingqiu4", url);
+        LogUtils.d("qingqiu4", url);
         //高版本安卓返回资源的同时需要在响应头设置Access-Control相关字段
         WebResourceResponse response;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -112,14 +113,14 @@ public class ResourceManagerImpl implements ResourceManager {
         String indexFileName =
             FileUtils.getPackageWorkName(context, packageId, version) + File.separator + Constants.RESOURCE_MIDDLE_PATH
                 + File.separator + Constants.RESOURCE_INDEX_NAME;
-        Logger.d("updateResource indexFileName: " + indexFileName);
+        LogUtils.d("updateResource indexFileName: " + indexFileName);
         File indexFile = new File(indexFileName);
         if (!indexFile.exists()) {
-            Logger.e("updateResource indexFile is not exists ,update Resource error ");
+            LogUtils.e("updateResource indexFile is not exists ,update Resource error ");
             return isSuccess;
         }
         if (!indexFile.isFile()) {
-            Logger.e("updateResource indexFile is not file ,update Resource error ");
+            LogUtils.e("updateResource indexFile is not file ,update Resource error ");
             return isSuccess;
         }
         FileInputStream indexFis = null;
@@ -130,7 +131,7 @@ public class ResourceManagerImpl implements ResourceManager {
         }
 
         if (indexFis == null) {
-            Logger.e("updateResource indexStream is error,  update Resource error ");
+            LogUtils.e("updateResource indexStream is error,  update Resource error ");
             return isSuccess;
         }
         //基于index.json生成对应的ResourceInfoEntity实例entity
@@ -198,10 +199,10 @@ public class ResourceManagerImpl implements ResourceManager {
                 InputStream inputStream = FileUtils.getInputStream(resourceInfo.getLocalPath());
                 size = inputStream.available();
             } catch (IOException e) {
-                Logger.e("resource file is error " + e.getMessage());
+                LogUtils.e("resource file is error " + e.getMessage());
             }
             if (size == 0) {
-                Logger.e("resource file is error ");
+                LogUtils.e("resource file is error ");
                 return false;
             }
             return true;

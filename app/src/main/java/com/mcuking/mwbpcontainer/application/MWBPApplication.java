@@ -14,6 +14,9 @@ import java.io.IOException;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import uk.co.alt236.webviewdebug.DebugWebChromeClientLogger;
+import uk.co.alt236.webviewdebug.DebugWebViewClientLogger;
+
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -30,6 +33,8 @@ public class MWBPApplication extends MultiDexApplication {
 
         PackageManager.getInstance().init(context);
         getPackageIndex(Constants.BASE_PACKAGE_INDEX);
+
+
     }
 
     private void getPackageIndex(final String url){
@@ -38,10 +43,11 @@ public class MWBPApplication extends MultiDexApplication {
             public void run() {
                 try {
                     OkHttpClient client = new OkHttpClient();
+                    Log.d("getPackageIndex", "request : "+url);
                     Request request = new Request.Builder().url(url).build();
                     try (Response response = client.newCall(request).execute()) {
                         String data =  response.body().string();
-                        Log.d("getPackageIndex", "do post");
+                        Log.d("getPackageIndex", "result: "+url+"\n"+data);
                         EventBus.getDefault().post(data);
                     }
                 } catch (IOException e) {

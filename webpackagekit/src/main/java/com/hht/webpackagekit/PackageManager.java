@@ -6,9 +6,10 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
+
 import android.webkit.WebResourceResponse;
 
+import com.blankj.utilcode.util.LogUtils;
 import com.google.gson.Gson;
 import com.hht.webpackagekit.core.AssetResourceLoader;
 import com.hht.webpackagekit.core.Constants;
@@ -20,7 +21,6 @@ import com.hht.webpackagekit.core.PackageStatus;
 import com.hht.webpackagekit.core.ResourceManager;
 import com.hht.webpackagekit.core.util.FileUtils;
 import com.hht.webpackagekit.core.util.GsonUtils;
-import com.hht.webpackagekit.core.util.Logger;
 import com.hht.webpackagekit.core.util.VersionUtils;
 import com.hht.webpackagekit.inner.AssetResourceLoaderImpl;
 import com.hht.webpackagekit.inner.DownloaderImpl;
@@ -83,7 +83,7 @@ public class PackageManager {
 
     public void init(Context context) {
 
-        Log.d("PackageManager","init");
+        LogUtils.d("PackageManager","init");
         this.context = context;
 
         resourceManager = new ResourceManagerImpl(context);
@@ -130,20 +130,20 @@ public class PackageManager {
       }
 
       for (int i = 0; i < Constants.LOCAL_ASSET_LIST.length ; i++) {
-        Log.d("PKGM1", Constants.LOCAL_ASSET_LIST[i]);
+        LogUtils.d("PKGM1", Constants.LOCAL_ASSET_LIST[i]);
         PackageInfo packageInfo = assetResourceLoader.load(Constants.LOCAL_ASSET_LIST[i]);
         if (packageInfo == null) {
           return;
         }
-        Log.d("PKGM2", packageInfo.getPackageId());
-        Log.d("performLoadAssets", "installPackage");
+        LogUtils.d("PKGM2", packageInfo.getPackageId());
+        LogUtils.d("performLoadAssets", "installPackage");
         installPackage(packageInfo.getPackageId(), packageInfo, true);
       }
     }
 
     //基于从服务端拉取的packageIndex.json，决定升级哪些离线包
     private void performUpdate(String packageIndexStr) {
-        Log.d("download", "performupdate");
+        LogUtils.d("download", "performupdate");
         //读取本地packageIndex.json文件
         String localPackageIndexFileName = FileUtils.getPackageIndexFileName(context);
         File localPackageIndexFile = new File(localPackageIndexFileName);
@@ -182,12 +182,13 @@ public class PackageManager {
         //遍历处理好的willDownloadPackageInfoList，下载相应离线包，下载成功后调用PackageInstaller.install将包与之前的离线包合并或替换，并解压到指定目录
         for (PackageInfo packageInfo : willDownloadPackageInfoList) {
             Downloader downloader = new DownloaderImpl(context);
+            LogUtils.i("开始下载",packageInfo);
             downloader.download(packageInfo, new DownloadCallback(this));
         }
 
         if (onlyUpdatePackageInfoList != null && onlyUpdatePackageInfoList.size() > 0) {
             for (PackageInfo packageInfo : onlyUpdatePackageInfoList) {
-                Log.d("performUpdate", packageInfo.getVersion());
+                LogUtils.d("performUpdate", packageInfo.getVersion());
                 resourceManager.updateResource(packageInfo.getPackageId(), packageInfo.getVersion());
                 synchronized (packageStatusMap) {
                     packageStatusMap.put(packageInfo.getPackageId(), STATUS_PACKAGE_CANUSE);
@@ -213,7 +214,8 @@ public class PackageManager {
         }
         int index = 0;
         for (PackageInfo localPackageInfo : localPackageEntity.getItems()) {
-            Log.d("localVersion", localPackageInfo.getVersion());
+            LogUtils.d("localVersion", localPackageInfo.getVersion());
+            
 
             // 如果本地 packageIndex 的某个包 localPackageInfo 不在从服务器拉下来的 packageIndex 中，则跳出本次循环
             if ((index = willDownloadPackageInfoList.indexOf(localPackageInfo)) < 0) {
@@ -223,8 +225,9 @@ public class PackageManager {
             //则从willDownloadPackageInfoList中移除离线包packageInfo，移入onlyUpdatePackageInfoList，即只需更新packageInfo，无需下载
             //否则更新本地离线包localPackageInfo的版本，然后等待下载
             PackageInfo packageInfo = willDownloadPackageInfoList.get(index);
-            Log.d("PKGM","pkgId:"+packageInfo.getPackageId() + "|" +"remote version:" + packageInfo.getVersion() + "|" +"local version:" + localPackageInfo.getVersion());
+            LogUtils.d("PKGM","pkgId:"+packageInfo.getPackageId() + "|" +"remote version:" + packageInfo.getVersion() + "|" +"local version:" + localPackageInfo.getVersion());
             if (VersionUtils.compareVersion(packageInfo.getVersion(), localPackageInfo.getVersion()) <= 0) {
+                LogUtils.i(localPackageInfo.getPackageId(),"版本一致,无需更新");
                 if (!checkResourceFileValid(packageInfo.getPackageId(), packageInfo.getVersion())) {
                     return;
                 }
@@ -238,11 +241,13 @@ public class PackageManager {
                 localPackageInfo.setStatus(packageInfo.getStatus());
             } else {
                 if ((Integer.parseInt(packageInfo.getVersion()) - Integer.parseInt(localPackageInfo.getVersion()) > 1)) {
+                    LogUtils.w(localPackageInfo.getPackageId(),"远端离线包版本比本地离线包版本高出 1 个版本，下载全量包",packageInfo.getVersion(),localPackageInfo.getVersion());
                     // 如果远端离线包版本比本地离线包版本高出 1 个版本，则下载全量包
                     packageInfo.setDownloadUrl(packageInfo.getOrigin_file_path());
                     packageInfo.setIsPatch(false);
                     packageInfo.setMd5(packageInfo.getOrigin_file_md5());
                 } else {
+                    LogUtils.i(localPackageInfo.getPackageId(),"远端离线包版本和本地离线包版本仅差 1 个版本，则下载差量包");
                     // 否则表示远端离线包版本和本地离线包版本仅差 1 各版本，则下载差量包
                     // 注意：本项目的离线包平台仅对相邻的版本做差量包，读者可以根据自己的需求，设置远端和本地离线包版本相差多少以内，才会使用离线包，
                     // 然后修改两处：1. 这里的版本比对逻辑 2. 离线包管理平台的计算差量包相关逻辑
@@ -264,7 +269,7 @@ public class PackageManager {
 
     //更新packageIndex.json中packageId对应的离线包版本
     private void updatePackageIndexFile(String packageId, String version) {
-        Log.d("updatePackageIndexFile1", packageId + "|"+version);
+        LogUtils.d("updatePackageIndexFile1", packageId + "|"+version);
         String packageIndexFileName = FileUtils.getPackageIndexFileName(context);
         File packageIndexFile = new File(packageIndexFileName);
         //若不存在packageIndex.json，则创建一个packageIndex.json
@@ -323,7 +328,7 @@ public class PackageManager {
             try {
                 outputStream.write(updateStr.getBytes());
             } catch (IOException ignore) {
-                Logger.e("write packageIndex file error");
+                LogUtils.e("write packageIndex file error");
             } finally {
                 if (outputStream != null) {
                     try {
@@ -334,7 +339,7 @@ public class PackageManager {
                 }
             }
         } catch (Exception ignore) {
-            Logger.e("read packageIndex file error");
+            LogUtils.e("read packageIndex file error");
         }
     }
 
@@ -343,7 +348,7 @@ public class PackageManager {
 
             String packageId = resourceManager.getPackageId(url);
             Integer status = packageStatusMap.get(packageId);
-            Log.d("WebResourceResponse", status + " | " + url + " | " + packageId +"| packageStatusMap size:"+packageStatusMap.size());
+            //LogUtils.d("WebResourceResponse", status + " | " + url + " | " + packageId +"| packageStatusMap size:"+packageStatusMap.size());
             if (status == null) {
                 return null;
             }
@@ -360,8 +365,8 @@ public class PackageManager {
     }
 
     private void downloadSuccess(String packageId) {
-        Log.d("download", "success");
         if (packageHandler == null) {
+            LogUtils.w("packageHandler == null");
             return;
         }
         Message message = Message.obtain();
@@ -371,7 +376,7 @@ public class PackageManager {
     }
 
     private void downloadFailure(String packageId) {
-        Log.d("download", "failure");
+        LogUtils.d("download", "failure");
         if (packageHandler == null) {
             return;
         }
@@ -392,13 +397,15 @@ public class PackageManager {
                 resourceLock.unlock();
                 //安装失败情况下，不做任何处理，因为资源既然资源需要最新资源，失败了，就没有必要再用缓存了
                 if (isSuccess) {
-                    Log.d("installPackage", "version" + packageInfo.getVersion() + "| isAssets " + isAssets );
+                    LogUtils.i("installPackage success", "version" + packageInfo.getVersion() + "| isAssets " + isAssets );
                     resourceManager.updateResource(packageInfo.getPackageId(), packageInfo.getVersion());
                     //更新安装成功的离线包版本到packageIndex.json
                     updatePackageIndexFile(packageInfo.getPackageId(), packageInfo.getVersion());
                     synchronized (packageStatusMap) {
                         packageStatusMap.put(packageId, STATUS_PACKAGE_CANUSE);
                     }
+                }else {
+                    LogUtils.w("install fail",packageInfo);
                 }
 //            }
         }
@@ -417,7 +424,7 @@ public class PackageManager {
             packageInfo = willDownloadPackageInfoList.remove(pos);
         }
         allResouceUpdateFinished();
-        Log.d("performDownloadSuccess", "installPackage");
+        LogUtils.d("performDownloadSuccess", "installPackage");
         installPackage(packageId, packageInfo, false);
     }
 
@@ -478,11 +485,13 @@ public class PackageManager {
 
         @Override
         public void onSuccess(String packageId) {
+            LogUtils.i("下载成功",packageId);
             packageManager.downloadSuccess(packageId);
         }
 
         @Override
         public void onFailure(String packageId) {
+            LogUtils.w("下载失败",packageId);
             packageManager.downloadFailure(packageId);
         }
     }

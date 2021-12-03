@@ -35,5 +35,6 @@ dependencies {
     implementation 'com.liulishuo.filedownloader:library:1.7.5'
     implementation 'com.google.code.gson:gson:2.7'
     api project(':bspatch')
+    api 'com.blankj:utilcodex:1.30.0'
 }
 

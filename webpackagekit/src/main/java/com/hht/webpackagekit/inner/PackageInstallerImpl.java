@@ -2,13 +2,14 @@ package com.hht.webpackagekit.inner;
 
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
+
+import com.blankj.utilcode.util.LogUtils;
 import com.hht.webpackagekit.core.PackageEntity;
 import com.hht.webpackagekit.core.PackageInfo;
 import com.hht.webpackagekit.core.PackageInstaller;
 import com.hht.webpackagekit.core.util.FileUtils;
 import com.hht.webpackagekit.core.util.GsonUtils;
-import com.hht.webpackagekit.core.util.Logger;
+
 import com.hss01248.bspatch.BsUtil;
 
 import java.io.File;
@@ -23,7 +24,7 @@ import java.util.List;
  */
 public class PackageInstallerImpl implements PackageInstaller {
     private Context context;
-    private final static String TAG = "PackageInstallerImpl";
+    private final static String TAG = "PackageManager";
 
     public PackageInstallerImpl(Context context) {
         this.context = context;
@@ -37,6 +38,7 @@ public class PackageInstallerImpl implements PackageInstaller {
     @Override
     public boolean install(PackageInfo packageInfo, boolean isAssets) {
         //获取刚下载的离线包download.zip的路径，或者是预先加载到assets的离线包package.zip的路径
+        LogUtils.d(TAG,"准备合并资源",packageInfo,"isFromAssets"+isAssets);
         String downloadFile =
             isAssets ? FileUtils.getPackageAssetsName(context, packageInfo.getPackageId(), packageInfo.getVersion())
                 : FileUtils.getPackageDownloadName(context, packageInfo.getPackageId(), packageInfo.getVersion());
@@ -49,7 +51,7 @@ public class PackageInstallerImpl implements PackageInstaller {
         boolean isSuccess = true;
         String lastVersion = getLastVersion(packageInfo.getPackageId());
         if (packageInfo.isPatch() && TextUtils.isEmpty(lastVersion)) {
-            Logger.e("资源为patch ,但是上个版本信息没有数据，无法patch!");
+            LogUtils.e(TAG,"资源为patch ,但是上个版本信息没有数据，无法patch!");
             return false;
         }
 
@@ -63,9 +65,9 @@ public class PackageInstallerImpl implements PackageInstaller {
             //合并 已经即将被更新的包download.zip或res.zip 和 本地即将被更新的离线包update.zip，生成merge.zip
             //并删除刚下载的离线包download.zip或res.zip
             String downloadFileMD5 = getFileMD5(new File(downloadFile));
-          Log.d("mergepatch", "local file md5:"+ downloadFileMD5+"| packageInfo md5:"+ packageInfo.getMd5());
+          LogUtils.d(TAG,"mergepatch", "local file md5:"+ downloadFileMD5+"| packageInfo md5:"+ packageInfo.getMd5());
           if (!downloadFileMD5.equals(packageInfo.getMd5())) {
-            Log.d("mergepatch", "local file diff then remote");
+            LogUtils.d(TAG,"mergepatch", "local file diff then remote");
             return false;
           }
 
@@ -73,29 +75,31 @@ public class PackageInstallerImpl implements PackageInstaller {
           /*try {
                 status = PatchUtils.getInstance().patch(baseFile, mergePatch, downloadFile);
             } catch (Exception ignore) {
-                Logger.e("patch error " + ignore.getMessage());
+                LogUtils.e(TAG,"patch error " + ignore.getMessage());
             }*/
             if (mergeSuccess) {
                 willCopyFile = mergePatch;
                 FileUtils.deleteFile(downloadFile);
+                LogUtils.i(TAG,"bsPatch merge 成功,删除差分包！",baseFile,mergePatch,downloadFile);
             } else {
                 isSuccess = false;
+                LogUtils.e(TAG,"bsPatch merge 失败！",baseFile,mergePatch,downloadFile);
             }
         }
         if (!isSuccess) {
-            Logger.e("资源patch merge 失败！");
+            LogUtils.e(TAG,"资源patch merge 失败！");
             return false;
         }
 
         //拷贝downloadFile(download.zip 或 res.zip)或合并增量包生成的merge.zip到update.zip,并删除刚被拷贝的文件
         isSuccess = FileUtils.copyFileCover(willCopyFile, updateFile);
         if (!isSuccess) {
-            Logger.e("[" + packageInfo.getPackageId() + "] : " + "copy file error ");
+            LogUtils.e(TAG,"[" + packageInfo.getPackageId() + "] : " + "copy file error ");
             return false;
         }
         isSuccess = FileUtils.delFile(willCopyFile);
         if (!isSuccess) {
-            Logger.e("[" + packageInfo.getPackageId() + "] : " + "delete will copy file error ");
+            LogUtils.e(TAG,"[" + packageInfo.getPackageId() + "] : " + "delete will copy file error ");
             return false;
         }
 
@@ -107,7 +111,7 @@ public class PackageInstallerImpl implements PackageInstaller {
             isSuccess = false;
         }
         if (!isSuccess) {
-            Logger.e("[" + packageInfo.getPackageId() + "] : " + "unZipFolder error ");
+            LogUtils.e(TAG,"[" + packageInfo.getPackageId() + "] : " + "unZipFolder error ");
             return false;
         }
         if (isSuccess) {

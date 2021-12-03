@@ -11,7 +11,6 @@
         android:name=".application.MWBPApplication"
         android:allowBackup="true"
         android:icon="@drawable/icon"
-        android:label="Memo"
         android:roundIcon="@drawable/icon"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
