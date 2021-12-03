@@ -3,14 +3,13 @@ package com.hht.webpackagekit.inner;
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
-
-import com.hht.lib.bsdiff.PatchUtils;
 import com.hht.webpackagekit.core.PackageEntity;
 import com.hht.webpackagekit.core.PackageInfo;
 import com.hht.webpackagekit.core.PackageInstaller;
 import com.hht.webpackagekit.core.util.FileUtils;
 import com.hht.webpackagekit.core.util.GsonUtils;
 import com.hht.webpackagekit.core.util.Logger;
+import com.hss01248.bspatch.BsUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -63,7 +62,6 @@ public class PackageInstallerImpl implements PackageInstaller {
                 FileUtils.getPackageMergePatch(context, packageInfo.getPackageId(), packageInfo.getVersion());
             //合并 已经即将被更新的包download.zip或res.zip 和 本地即将被更新的离线包update.zip，生成merge.zip
             //并删除刚下载的离线包download.zip或res.zip
-            int status = -1;
             String downloadFileMD5 = getFileMD5(new File(downloadFile));
           Log.d("mergepatch", "local file md5:"+ downloadFileMD5+"| packageInfo md5:"+ packageInfo.getMd5());
           if (!downloadFileMD5.equals(packageInfo.getMd5())) {
@@ -71,12 +69,13 @@ public class PackageInstallerImpl implements PackageInstaller {
             return false;
           }
 
-          try {
+          boolean mergeSuccess = BsUtil.bsPatch(baseFile, mergePatch, downloadFile);
+          /*try {
                 status = PatchUtils.getInstance().patch(baseFile, mergePatch, downloadFile);
             } catch (Exception ignore) {
                 Logger.e("patch error " + ignore.getMessage());
-            }
-            if (status == 0) {
+            }*/
+            if (mergeSuccess) {
                 willCopyFile = mergePatch;
                 FileUtils.deleteFile(downloadFile);
             } else {

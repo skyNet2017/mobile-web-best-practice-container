@@ -4,6 +4,8 @@ import android.content.Context;
 import android.app.Application;
 import android.util.Log;
 
+import androidx.multidex.MultiDexApplication;
+
 import com.hht.webpackagekit.PackageManager;
 import com.hht.webpackagekit.core.Constants;
 
@@ -16,7 +18,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-public class MWBPApplication extends Application {
+public class MWBPApplication extends MultiDexApplication {
 
     private static Context context;
 

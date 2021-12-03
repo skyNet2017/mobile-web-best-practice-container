@@ -5,8 +5,6 @@ import android.util.Log;
 
 import java.io.File;
 
-import javax.xml.transform.sax.TemplatesHandler;
-
 /**
  * @Despciption todo
  * @Author hss
@@ -15,12 +13,15 @@ import javax.xml.transform.sax.TemplatesHandler;
  */
 public class BsUtil {
     final static String TAG = "BsUtil";
+    static boolean loadSuccess = false;
 
     static {
         try {
             System.loadLibrary("mybspatch");
+            loadSuccess = true;
         }catch (Throwable throwable){
             throwable.printStackTrace();
+            loadSuccess = false;
         }
     }
 
@@ -43,6 +44,10 @@ public class BsUtil {
         }
         if(TextUtils.isEmpty(newpath)){
             Log.w(TAG,"newpath is null  ");
+            return false;
+        }
+        if(!loadSuccess){
+            Log.w(TAG,"libbspatch.so not load success  ");
             return false;
         }
         try {
