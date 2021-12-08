@@ -9,5 +9,5 @@
 #include <jni.h>
 int mypatch(int argc,char * argv[]);
 JNIEXPORT jint JNICALL
-Java_io_silvrr_installment_module_weboffline_BsdiffPatch_patch
+Java_com_hss01248_bspatch_BsUtil_patch
         (JNIEnv *env, jobject instance, jstring oldpath_, jstring newpath_,jstring patch_);
